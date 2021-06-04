@@ -1,39 +1,60 @@
 # download-tweets-ai-text-gen-plus
 
-A small Python 3 script to download public Tweets from a given Twitter account into a format suitable for AI text generation tools (such as [gpt-2-simple](https://github.com/minimaxir/gpt-2-simple) for finetuning [GPT-2](https://openai.com/blog/better-language-models/)).
+A small Python 3 script to download public Tweets from Twitter accounts into a format suitable for AI text generation tools (such as [gpt-2-simple](https://github.com/minimaxir/gpt-2-simple) for finetuning [GPT-2](https://openai.com/blog/better-language-models/)).
 
-* Retrieves all tweets as a simple CSV with a single CLI command.
-* Preprocesses tweets to remove URLs, extra spaces, and optionally usertags/hashtags.
-* Saves tweets in batches (i.e. there is an error or you want to end collection early)
+* Retrieves all tweets as a simple CSV with a single CLI command
+* Preprocesses tweets to remove URLs, extra spaces, and optionally usertags/hashtags
+* Saves tweets after each collection in case there is an error or you want to end collection early
 
 You can view examples of AI-generated tweets from datasets retrieved with this tool in the `/examples` folder.
 
+## Setup
+
+First, clone this repository onto your system and install dependencies with the following commands:
+
+```sh
+git clone https://github.com/sdelgadoc/download-tweets-ai-text-gen-plus.git
+cd download-tweets-ai-text-gen-plus
+pip3 install -r requirements.txt
+```
+
+Previous versions of this code used scraping libraries to collect tweets.  Since then, Twitter has made scraping harder while providing more [robust tweet collection API's](https://developer.twitter.com/en/docs/twitter-api/premium).  In response, we ported this code to run only with the Twitter's API.
+
+To continue the setup, [create a Twitter app](https://developer.twitter.com/en/docs/basics/apps/overview) so you can obtain access to the Twitter API.  Once you create an app, [generate access tokens](https://developer.twitter.com/ja/docs/basics/authentication/guides/access-tokens), and input them into the section of the `keys.py` file shown below.
+
+```py
+keys = {'consumer_key': "",
+        'consumer_secret': "",
+        'access_token': "",
+        'access_token_secret': ""}
+```
+
+Finally, go to the Twitter API's [Dev environments page](https://developer.twitter.com/en/account/environments), generate a Dev environment for the Full Archive API, and input the environment's name into the section of the `keys.py` file shown below.
+
+```py
+environment_name = ""
+```
+
 ## Usage
 
-First, install the Python script dependencies:
+The script is run via a command line interface. After `cd`ing into the directory where the script is stored in a terminal, run:
 
 ```sh
-pip3 install twint==2.1.4 fire tqdm textblob tweepy
+python3 download_tweets.py <twitter_username> 100
 ```
 
-Then download the `download_tweets.py` script from this repo.
-
-The script is interacted via a command line interface. After `cd`ing into the directory where the script is stored in a terminal, run:
+e.g. If you want to download 100 tweets (sans retweets/replies/quote tweets) from Twitter user [@santiagodc](https://twitter.com/santiagodc), run:
 
 ```sh
-python3 download_tweets.py <twitter_username>
+python3 download_tweets.py santiagodc 100
 ```
+*NOTE: The Twittter API's free tier has a collection limit of 5,000 tweets per month, so set a tweet limit to avoid hitting your limit too quickly*
 
-e.g. If you want to download all tweets (sans retweets/replies/quote tweets) from Twitter user [@santiagodc](https://twitter.com/santiagodc), run:
-
-```sh
-python3 download_tweets.py santiagodc
-```
 
 The script can can also download tweets from multiple usernames at one time.  To do so, first create a text file (.txt) with the list of usernames.  Then, run script referencing the file name:
 
 ```sh
-python3 download_tweets.py <twitter_usernames_file_name>
+python3 download_tweets.py <twitter_usernames_file_name> 100
 ```
 
 The tweets will be downloaded to a single-column CSV titled `<usernames>_tweets.csv`.
@@ -64,9 +85,9 @@ The sentiment parameter accepts an integer that specifies the number of sentimen
 * 7: EXTREMELY POSITIVE, VERY POSITIVE, POSITIVE, NEUTRAL, NEGATIVE, VERY NEGATIVE, EXTREMELY NEGATIVE
 
 
-## How to collect tweets to train an AI that can reply to tweets
+## How does the text_format functionality work
 
-The code supports collecting tweets in a format that lets you train an AI that can reply to other tweets.  The output format is based on [the format](https://www.reddit.com/r/SubSimulatorGPT2Meta/comments/caelo0/could_you_give_more_details_on_the_input/et8j3b1/?context=3) used to train the [Subreddit Simulator](https://www.reddit.com/r/SubredditSimulator/) Reddit community.
+The code supports collecting tweets in a format for trainining an AI that can reply to other tweets.  The output format is based on [the format](https://www.reddit.com/r/SubSimulatorGPT2Meta/comments/caelo0/could_you_give_more_details_on_the_input/et8j3b1/?context=3) used to train the [Subreddit Simulator](https://www.reddit.com/r/SubredditSimulator/) Reddit community.
 
 The output format is the following:
 ```txt
@@ -81,24 +102,11 @@ SENTIMENT: If the sentiment parameter is used, text describing the tweet text's 
 [Tweet text for the tweet that was collected]
 ```
 
-To collect tweets in the reply format, you will need to [create a Twitter app](https://developer.twitter.com/en/docs/basics/apps/overview) so you can obtain access to the Twitter API.  The Twitter API is used by the code to traverse reply threads, which is currently not possible in the Twint library.
-
-Once you create your Twitter app, input your credentials into the ``keys.py`` file shown below:
-
-```py
-keys = {'consumer_key': "",
-        'consumer_secret': "",
-        'access_token': "",
-        'access_token_secret': ""}
-```
-
-After inputting the credentials, you can collect tweets with three sentiment categories by running:
+To collect tweets with this reply format by running the following statement:
 
 ```sh
 python3 download_tweets.py <twitter_username> None True False False False 3 reply
 ```
-
-***Note:*** The collection rate of tweets with the 'reply' format will likely be 1 - 2 tweets per second, much slower than the 'simple' format due to the Twitter API's rate limitting.  But, because each tweet has more information, you might need fewer tweets to train your model
 
 ## How to Train an AI on the downloaded tweets
 
